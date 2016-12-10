@@ -75,7 +75,7 @@ def gen_tile(name,in_blob,out_blob,axis,tiles):
     s=s+'top: "'+out_blob+'"\n'
     s=s+'tile_param {\n'
     s=s+'axis: '+'%d'%axis+'\n'
-    s=s+'tiles: '+'%d'%axis+'\n'
+    s=s+'tiles: '+'%d'%tiles+'\n'
     s=s+'}\n'
     s=s+'}\n'
     return s
@@ -100,19 +100,29 @@ def gen_conv(name,in_blob,out_blob,out_channel,kernel_size,pad,stride,bias_term,
     s=s+'}\n'
     return s
 
-def res_unit(unit_name,in_blob,out_blob,channels):
+def res_unit(unit_name,in_blob,out_blob,in_channel,channels):
     s=''
     s=s+gen_BN(unit_name+'b1',in_blob,unit_name+'b1','TRAIN')
     s=s+gen_BN(unit_name+'b1',in_blob,unit_name+'b1','TEST')
     s=s+gen_scale(unit_name+'s1',unit_name+'b1',unit_name+'s1','true')
     s=s+gen_relu(unit_name+'r1',unit_name+'s1',unit_name+'r1')
+    s=s+gen_conv(unit_name+'c1',unit_name+'r1',unit_name+'c1',channels[0],3,1,1,'false','xavier')
+    s=s+gen_BN(unit_name+'b2',unit_name+'c1',unit_name+'b2','TRAIN')
+    s=s+gen_BN(unit_name+'b2',unit_name+'c1',unit_name+'b2','TEST')
+    s=s+gen_scale(unit_name+'s2',unit_name+'b2',unit_name+'s2','true')
+    s=s+gen_relu(unit_name+'r2',unit_name+'s2',unit_name+'r2')
+    s=s+gen_conv(unit_name+'c2',unit_name+'r2',unit_name+'c2',channels[1],3,1,1,'false','xavier')
+    s=s+gen_tile(unit_name+'t1',unit_name+'c2',unit_name+'t1',1,channels[1]/in_channel)
+    print channels[1]/in_channel
+    s=s+gen_eltwise(unit_name+'e1',[unit_name+'t1',in_blob],out_blob)
+
 
     return s
 
 
 def main(argv):
     file = open(argv[1],'w')
-    file.write(res_unit('u1','in_blob','out_blob',[123]))
+    file.write(res_unit('u1','in_blob','out_blob',16,[16,32]))
     file.close()
     return
 
